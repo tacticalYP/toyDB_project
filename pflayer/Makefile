@@ -22,7 +22,22 @@ $(OBJ): $(HDR)
 testpf.o: $(HDR)
 
 # lint: 
-# 	lint $(SRC)
-
+# lint $(SRC)
 # install: pflayer.o 
+
+SPAGE_OBJ = spage.o
+
+spage.o: spage.c spage.h $(HDR)
+	gcc -g -c spage.c
+
+TEST_SPAGE_SRC = test_spage.c
+TEST_SPAGE_OBJ = test_spage.o
+
+test_spage.o: $(TEST_SPAGE_SRC) spage.h $(HDR)
+	gcc -g -c test_spage.c
+
+test_spage: $(TEST_SPAGE_OBJ) $(SPAGE_OBJ) pflayer.o
+	gcc -g -o test_spage $(TEST_SPAGE_OBJ) $(SPAGE_OBJ) pflayer.o
+
+
 

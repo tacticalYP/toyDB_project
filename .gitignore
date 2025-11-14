@@ -1,0 +1,22 @@
+# Build Artifacts
+*.o
+*.out
+*.exe
+*.db
+*.obj
+
+# Editor Files
+*.swp
+*.tmp
+
+# Linux binaries
+test_spage
+compare
+testpf
+
+# Data files (optional)
+student.txt
+*.txt
+
+# VSCode
+.vscode/
