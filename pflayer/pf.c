@@ -15,6 +15,9 @@ int PFerrno = PFE_OK;	/* last error message */
 
 static PFftab_ele PFftab[PF_FTAB_SIZE]; /* table of opened files */
 
+/// statistics
+PF_Stats PFstats;
+
 /* true if file descriptor fd is invaild */
 #define PFinvalidFd(fd) ((fd) < 0 || (fd) >= PF_FTAB_SIZE \
 				|| PFftab[fd].fname == NULL)
@@ -42,7 +45,7 @@ char *s;
 	return(s);
 }
 
-///
+/// returns requested file table entry
 PFftab_ele get_PFftab(int fd){
     return PFftab[fd];
 }
@@ -56,6 +59,21 @@ int set_buffer_size(int siz){
 	}
 	else
 		return 0;
+}
+/// get statistics
+void PF_GetStats(PF_Stats *out){
+    if(out){
+		PFstats.pagesAccessed = PFstats.logicalReads + PFstats.logicalWrites;
+        *out = PFstats;
+	}
+}
+/// reset statistics
+void PF_ResetStats(){
+    memset(&PFstats, 0, sizeof(PFstats));
+}
+/// marks page dirty
+int PF_MarkDirty(int fd, int pagenum) {
+    return PFbufUsed(fd, pagenum);
 }
 
 static PFtabFindFname(fname)
@@ -206,6 +224,8 @@ int i;
 	for (i=0; i < PF_FTAB_SIZE; i++){
 		PFftab[i].fname = NULL;
 	}
+
+	memset(&PFstats, 0, sizeof(PFstats));
 }
 
 PF_CreateFile(fname)
@@ -291,7 +311,7 @@ int error;
 ///
 PF_OpenFile(fname,rep_policy)
 char *fname;		/* name of the file to open */
-char *rep_policy;
+char *rep_policy; // Page replacement policy
 // PF_OpenFile(fname)
 // char *fname;		/* name of the file to open */
 /****************************************************************************
@@ -353,7 +373,7 @@ int fd; /* file descriptor */
 		return(PFerrno);
 	}
 
-	///
+	/// setting page replacement policy
 	if(strcmp(rep_policy, "MRU") == 0){
 		PFftab[fd].mru = 1;
 	}
@@ -504,6 +524,11 @@ PFfpage *fpage;	/* pointer to file page */
 			/* found a used page */
 			*pagenum = temppage;
 			*pagebuf = (char *)fpage->pagebuf;
+
+			///
+			PFstats.logicalReads++;
+            // PFstats.pagesAccessed++;
+
 			return(PFE_OK);
 		}
 
@@ -560,6 +585,10 @@ PFfpage *fpage;
 	if (fpage->nextfree == PF_PAGE_USED){
 		/* page is used*/
 		*pagebuf = (char *)fpage->pagebuf;
+
+		///
+		PFstats.logicalReads++;
+		// PFstats.pagesAccessed++;
 		return(PFE_OK);
 	}
 	else {
@@ -640,6 +669,9 @@ int error;
 
 	/* set return value */
 	*pagebuf = fpage->pagebuf;
+
+	PFstats.logicalWrites++;
+    // PFstats.pagesAccessed++;
 	
 	return(PFE_OK);
 }
@@ -692,6 +724,10 @@ int error;
 	PFftab[fd].hdr.firstfree = pagenum;
 	PFftab[fd].hdrchanged = TRUE;
 
+	/// disposal is effectively a write since page metadata changed
+    PFstats.logicalWrites++;
+    // PFstats.pagesAccessed++;
+
 	/* unfix this page */
 	return(PFbufUnfix(fd,pagenum,TRUE));
 }
@@ -724,6 +760,12 @@ RETURN VALUE:
 		PFerrno = PFE_INVALIDPAGE;
 		return(PFerrno);
 	}
+
+	///
+	if (dirty) {
+        PFstats.logicalWrites++;
+    }
+    PFstats.pagesAccessed++;
 
 	return(PFbufUnfix(fd,pagenum,dirty));
 }

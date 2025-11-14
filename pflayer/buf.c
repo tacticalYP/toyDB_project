@@ -94,7 +94,7 @@ GLOBAL VARIABLES MODIFIED:
 static PFbufInternalAlloc(bpage,writefcn,fdd)
 PFbpage **bpage;	/* pointer to pointer to buffer bpage to be allocated*/
 int (*writefcn)();
-int fdd;
+int fdd; // file descriptor
 /****************************************************************************
 SPECIFICATIONS:
 	Allocate a buffer page and set *bpage to point to it. *bpage
@@ -155,7 +155,7 @@ int pr_strategy = get_PFftab(fdd).mru; // page replacement strategy : 0 = LRU or
 
 		*bpage = NULL;		/* set initial return value */
 
-		///
+		/// 
 		if(pr_strategy){
 			// MRU
 			for (tbpage=PFfirstbpage;tbpage!=NULL;tbpage=tbpage->nextpage){
@@ -184,6 +184,12 @@ int pr_strategy = get_PFftab(fdd).mru; // page replacement strategy : 0 = LRU or
 		if (tbpage->dirty&&((error=(*writefcn)(tbpage->fd,
 				tbpage->page,&tbpage->fpage))!= PFE_OK))
 			return(error);
+		///
+		if(tbpage->dirty){
+			PFstats.physicalWrites++;
+		}
+
+
 		tbpage->dirty = FALSE;
 
 		/* unlink from hash table */
@@ -245,7 +251,7 @@ int error;
 		/* page not in buffer. */
 		
 		/* allocate an empty page */
-		///
+		/// (added fd)
 		if ((error=PFbufInternalAlloc(&bpage,writefcn,fd))!= PFE_OK){
 			/* error */
 			*fpage = NULL;
@@ -261,6 +267,9 @@ int error;
 			*fpage = NULL;
 			return(error);
 		}
+
+		///
+		PFstats.physicalReads++;
 
 		/* insert new page into hash table */
 		if ((error=PFhashInsert(fd,pagenum,bpage))!=PFE_OK){
@@ -367,7 +376,7 @@ int error;
 		return(PFerrno);
 	}
 
-	///
+	/// (added fd)
 	if ((error=PFbufInternalAlloc(&bpage,writefcn,fd))!= PFE_OK)
 		/* can't get any buffer */
 		return(error);
@@ -430,6 +439,13 @@ int error;		/* error code */
 					&bpage->fpage))!= PFE_OK))
 				/* error writing file */
 				return(error);
+			///
+			if(bpage->dirty){
+				PFstats.physicalWrites++;
+			}
+			// PFstats.pagesAccessed++;
+
+
 			bpage->dirty = FALSE;
 
 			/* get rid of it from the hash table */

@@ -38,3 +38,16 @@
 extern int PFerrno;		/* error number of last error */
 extern void PF_Init();
 extern void PF_PrintError();
+
+typedef struct { // statistics data
+    long logicalReads;
+    long logicalWrites;
+    long physicalReads;
+    long physicalWrites;
+    long pagesAccessed;
+} PF_Stats;
+
+extern PF_Stats PFstats;
+void PF_GetStats(PF_Stats *);
+void PF_ResetStats();
+int PF_MarkDirty(int, int);

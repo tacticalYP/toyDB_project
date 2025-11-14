@@ -81,6 +81,5 @@ extern PFbufalloc();
 extern PFbufReleaseFile();
 
 ///
-PFftab_ele get_PFftab(int);
-int set_buffer_size(int);
-void PF_MarkDirty(int, int);
+PFftab_ele get_PFftab(int); // return file
+int set_buffer_size(int); // changes max buffer pool size

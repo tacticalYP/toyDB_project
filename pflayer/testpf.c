@@ -1,4 +1,5 @@
 // /* testpf.c */
+// ORIGINAL CODE
 // #include <stdio.h>
 // #include "pf.h"
 // #include "pftypes.h"
@@ -395,97 +396,201 @@
 
 // }
 
+
+///// INITIAL TEST BEFORE IMPLEMENTATION /////
+// #include <stdio.h>
+// #include <string.h>
+// #include "pf.h"
+// #include "pftypes.h"
+
+// int main() {
+//     int fd;
+//     int pagenum;
+//     char *pagebuf;
+//     char record1[] = "Record 1: Hello0, World!";
+//     char record2[] = "Record 2: This isS a test.";
+
+//     // Initialize PF layer
+//     // PF_Init();
+//     printf("0");
+//     // Create a new file
+//     if (PF_CreateFile("testfile1.db") != PFE_OK) {
+//         PF_PrintError("Error creating file");
+//         return 1;
+//     }
+//     printf("1");
+//     // Open the file
+//     fd = PF_OpenFile("testfile1.db","MRU");
+//     if (fd < 0) {
+//         PF_PrintError("Error opening file");
+//         return 1;
+//     }
+
+//     printf("2");
+//     // Allocate a page
+//     if (PF_AllocPage(fd, &pagenum, &pagebuf) != PFE_OK) {
+//         PF_PrintError("Error allocating page");
+//         PF_CloseFile(fd);
+//         return 1;
+//     }
+
+//     // Write first record
+//     strcpy(pagebuf, record1);
+//     if (PF_UnfixPage(fd, pagenum, TRUE) != PFE_OK) {
+//         PF_PrintError("Error unfixed page after writing record 1");
+//         PF_CloseFile(fd);
+//         return 1;
+//     }
+
+//     // Allocate another page
+//     if (PF_AllocPage(fd, &pagenum, &pagebuf) != PFE_OK) {
+//         PF_PrintError("Error allocating page");
+//         PF_CloseFile(fd);
+//         return 1;
+//     }
+
+//     // Write second record
+//     strcpy(pagebuf, record2);
+//     if (PF_UnfixPage(fd, pagenum, TRUE) != PFE_OK) {
+//         PF_PrintError("Error unfixed page after writing record 2");
+//         PF_CloseFile(fd);
+//         return 1;
+//     }
+
+//     // Read the first page
+//     if (PF_GetFirstPage(fd, &pagenum, &pagebuf) == PFE_OK) {
+//         printf("Read page %d: %s\n", pagenum, pagebuf);
+//         // Unfix the page after reading
+//         if (PF_UnfixPage(fd, pagenum, FALSE) != PFE_OK) {
+//             PF_PrintError("Error unfixed page after reading record 1");
+//             PF_CloseFile(fd);
+//             return 1;
+//         }
+//     } else {
+//         PF_PrintError("Error reading first page");
+//     }
+
+//     // Read the next page
+//     if (PF_GetNextPage(fd, &pagenum, &pagebuf) == PFE_OK) {
+//         printf("Read page %d: %s\n", pagenum, pagebuf);
+//         // Unfix the page after reading
+//         if (PF_UnfixPage(fd, pagenum, FALSE) != PFE_OK) {
+//             PF_PrintError("Error unfixed page after reading record 2");
+//             PF_CloseFile(fd);
+//             return 1;
+//         }
+//     } else {
+//         PF_PrintError("Error reading next page");
+//     }
+
+//     // Close the file
+//     if (PF_CloseFile(fd) != PFE_OK) {
+//         PF_PrintError("Error closing file");
+//         return 1;
+//     }
+
+//     return 0;
+// }
+
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pf.h"
 #include "pftypes.h"
 
-int main() {
-    int fd;
+// -------------------------------------------------------------
+// Helper: perform one write operation
+// -------------------------------------------------------------
+void do_write(int fd)
+{
     int pagenum;
     char *pagebuf;
-    char record1[] = "Record 1: Hello0, World!";
-    char record2[] = "Record 2: This isS a test.";
 
-    // Initialize PF layer
-    // PF_Init();
-    printf("0");
-    // Create a new file
-    if (PF_CreateFile("testfile1.db") != PFE_OK) {
-        PF_PrintError("Error creating file");
-        return 1;
-    }
-    printf("1");
-    // Open the file
-    fd = PF_OpenFile("testfile1.db","MRU");
-    if (fd < 0) {
-        PF_PrintError("Error opening file");
-        return 1;
-    }
-
-    printf("2");
     // Allocate a page
-    if (PF_AllocPage(fd, &pagenum, &pagebuf) != PFE_OK) {
-        PF_PrintError("Error allocating page");
-        PF_CloseFile(fd);
-        return 1;
+    if (PF_AllocPage(fd, &pagenum, &pagebuf) == PFE_OK) {
+        sprintf(pagebuf, "DATA-%d", rand() % 10000);
+        PF_UnfixPage(fd, pagenum, TRUE);   // mark dirty
     }
+}
 
-    // Write first record
-    strcpy(pagebuf, record1);
-    if (PF_UnfixPage(fd, pagenum, TRUE) != PFE_OK) {
-        PF_PrintError("Error unfixed page after writing record 1");
-        PF_CloseFile(fd);
-        return 1;
-    }
+// -------------------------------------------------------------
+// Helper: perform one read operation
+// -------------------------------------------------------------
+void do_read(int fd)
+{
+    int pagenum;
+    char *pagebuf;
 
-    // Allocate another page
-    if (PF_AllocPage(fd, &pagenum, &pagebuf) != PFE_OK) {
-        PF_PrintError("Error allocating page");
-        PF_CloseFile(fd);
-        return 1;
-    }
-
-    // Write second record
-    strcpy(pagebuf, record2);
-    if (PF_UnfixPage(fd, pagenum, TRUE) != PFE_OK) {
-        PF_PrintError("Error unfixed page after writing record 2");
-        PF_CloseFile(fd);
-        return 1;
-    }
-
-    // Read the first page
     if (PF_GetFirstPage(fd, &pagenum, &pagebuf) == PFE_OK) {
-        printf("Read page %d: %s\n", pagenum, pagebuf);
-        // Unfix the page after reading
-        if (PF_UnfixPage(fd, pagenum, FALSE) != PFE_OK) {
-            PF_PrintError("Error unfixed page after reading record 1");
-            PF_CloseFile(fd);
-            return 1;
+        // read data
+        volatile char tmp = pagebuf[0];
+
+        PF_UnfixPage(fd, pagenum, FALSE);
+
+        // try next page (optional)
+        if (PF_GetNextPage(fd, &pagenum, &pagebuf) == PFE_OK) {
+            volatile char tmp2 = pagebuf[0];
+            PF_UnfixPage(fd, pagenum, FALSE);
         }
-    } else {
-        PF_PrintError("Error reading first page");
+    }
+}
+
+// -------------------------------------------------------------
+// Run workload with specific read/write mixture
+// mix = percentage of WRITES (0 = all reads, 100 = all writes)
+// -------------------------------------------------------------
+void run_mix(int mix, int operations)
+{
+    int fd, i;
+
+    // Reset stats for this run
+    PF_ResetStats();
+
+    // Create and open fresh file
+    // PF_CreateFile("workfile.db");
+    fd = PF_OpenFile("workfile.db", "LRU");     // or "MRU"
+
+    for (i = 0; i < operations; i++) {
+        // int r = rand() % 100;
+        int r = i;
+
+        if (r < mix*operations/100) {
+            do_write(fd);
+        } else {
+            do_read(fd);
+        }
     }
 
-    // Read the next page
-    if (PF_GetNextPage(fd, &pagenum, &pagebuf) == PFE_OK) {
-        printf("Read page %d: %s\n", pagenum, pagebuf);
-        // Unfix the page after reading
-        if (PF_UnfixPage(fd, pagenum, FALSE) != PFE_OK) {
-            PF_PrintError("Error unfixed page after reading record 2");
-            PF_CloseFile(fd);
-            return 1;
-        }
-    } else {
-        PF_PrintError("Error reading next page");
-    }
+    PF_CloseFile(fd);
 
-    // Close the file
-    if (PF_CloseFile(fd) != PFE_OK) {
-        PF_PrintError("Error closing file");
-        return 1;
-    }
+    PF_Stats PFstat;
+    PF_GetStats(&PFstat);
+
+    // Print statistics as CSV
+    printf("%d,%ld,%ld,%ld,%ld,%ld\n",
+        mix,
+        PFstat.logicalReads,
+        PFstat.logicalWrites,
+        PFstat.physicalReads,
+        PFstat.physicalWrites,
+        PFstat.pagesAccessed
+    );
+}
+
+int main()
+{
+    PF_Init();
+    // PF_SetBufferSize(10);            // or any size
+    // PF_SetReplacementPolicy("LRU");  // or "MRU"
+
+    printf("mix,logicalReads,logicalWrites,physicalReads,physicalWrites,pagesAccessed\n");
+
+    run_mix(0,   500);    // 0% writes (100% reads)
+    run_mix(25,  500);    // 25% writes
+    run_mix(50,  500);    // 50% writes
+    run_mix(75,  500);    // 75% writes
+    run_mix(100, 500);    // 100% writes
 
     return 0;
 }
-

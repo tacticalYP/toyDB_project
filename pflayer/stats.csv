@@ -1,0 +1,6 @@
+mix,logicalReads,logicalWrites,physicalReads,physicalWrites,pagesAccessed
+0,1000,0,2,0,1000
+25,750,250,2,125,1000
+50,500,500,2,250,1000
+75,250,750,2,375,1000
+100,0,1000,0,500,1000
